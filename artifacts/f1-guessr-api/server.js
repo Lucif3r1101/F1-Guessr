@@ -218,7 +218,7 @@ async function buildChallenge(post) {
     title: post.title,
     answer: detected.answer,
     options: detected.options,
-    hint: buildHint(post.title, detected.hint),
+    hint: buildHint(post.title, detected),
     redditPermalink: `https://reddit.com${post.permalink}`,
     difficulty: Math.ceil(Math.random() * 10),
     questionType: detected.questionType,
@@ -298,13 +298,44 @@ function detectAnswer(post) {
   };
 }
 
-function buildHint(title, categoryHint) {
+function buildHint(title, detected) {
   const cleanTitle = title.replace(/\s+/g, " ").trim();
-  if (!categoryHint) {
-    return `Reddit title clue: ${cleanTitle}`;
+  const maskedTitle = maskAnswerInTitle(cleanTitle, detected.answer);
+  const shortenedTitle = maskedTitle.length > 90 ? `${maskedTitle.slice(0, 87).trimEnd()}...` : maskedTitle;
+
+  if (!detected.hint) {
+    return `Reddit clue: ${shortenedTitle}`;
   }
 
-  return `${categoryHint} | Reddit title clue: ${cleanTitle}`;
+  return `${detected.hint} | Reddit clue: ${shortenedTitle}`;
+}
+
+function maskAnswerInTitle(title, answer) {
+  const answerParts = answer
+    .split(/[\s\-]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3);
+
+  if (answerParts.length === 0) {
+    return title;
+  }
+
+  let maskedTitle = title;
+
+  for (const part of answerParts) {
+    const pattern = new RegExp(`\\b${escapeRegExp(part)}\\b`, "gi");
+    maskedTitle = maskedTitle.replace(pattern, repeatMask(part.length));
+  }
+
+  return maskedTitle;
+}
+
+function repeatMask(length) {
+  return "?".repeat(Math.max(3, length));
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function generateOptions(correct, pool) {
