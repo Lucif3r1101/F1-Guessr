@@ -179,8 +179,8 @@ export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlocked
                   {hasProgress ? `CONTINUE LEVEL ${highestUnlockedLevel}` : 'START FROM ROOKIE'}
                 </motion.button>
 
-                <div className="mt-4 text-center text-xs uppercase tracking-[0.22em] text-gray-500">
-                  Live challenge cache refreshes every minute
+                <div className="mt-4 text-center text-xs leading-5 text-gray-500">
+                  Tomorrow this browser resets back to Level 1 and clears the daily best, so each day starts as a fresh run.
                 </div>
               </motion.div>
             </div>

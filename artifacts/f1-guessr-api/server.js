@@ -300,7 +300,11 @@ function detectAnswer(post) {
 
 function buildHint(title, categoryHint) {
   const cleanTitle = title.replace(/\s+/g, " ").trim();
-  return `${categoryHint} | Reddit title: ${cleanTitle}`;
+  if (categoryHint === "An F1 moment from Reddit") {
+    return `Reddit title clue: ${cleanTitle}`;
+  }
+
+  return `${categoryHint} | Reddit title clue: ${cleanTitle}`;
 }
 
 function generateOptions(correct, pool) {
