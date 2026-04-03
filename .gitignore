@@ -1,0 +1,34 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+.vercel/
+
+# Dependencies
+node_modules/
+
+# TypeScript / tooling caches
+*.tsbuildinfo
+.cache/
+
+# Local test artifacts
+artifacts/f1-guessr/dev-check.txt
+artifacts/f1-guessr/dev-server.out
+artifacts/f1-guessr/dev-server.err
