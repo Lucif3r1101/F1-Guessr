@@ -32,3 +32,7 @@ node_modules/
 artifacts/f1-guessr/dev-check.txt
 artifacts/f1-guessr/dev-server.out
 artifacts/f1-guessr/dev-server.err
+artifacts/f1-guessr-api/api-challenges.json
+artifacts/f1-guessr-api/api-health.json
+artifacts/f1-guessr-api/api-server.out
+artifacts/f1-guessr-api/api-server.err
