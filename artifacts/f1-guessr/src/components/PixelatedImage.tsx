@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PixelatedImageProps {
@@ -29,10 +29,35 @@ export function PixelatedImage({
 }: PixelatedImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
   const zoomOrigin = useRef({
     x: 20 + Math.floor(Math.random() * 60),
     y: 20 + Math.floor(Math.random() * 60),
   });
+  const imageSources = getImageSourceCandidates(src);
+
+  useEffect(() => {
+    setLoaded(false);
+    setError(false);
+    setSourceIndex(0);
+  }, [src]);
+
+  const activeSrc = imageSources[Math.min(sourceIndex, imageSources.length - 1)];
+
+  const handleLoad = () => {
+    setLoaded(true);
+    setError(false);
+  };
+
+  const handleError = () => {
+    if (sourceIndex < imageSources.length - 1) {
+      setLoaded(false);
+      setSourceIndex((current) => current + 1);
+      return;
+    }
+
+    setError(true);
+  };
 
   if (error) {
     return (
@@ -51,11 +76,11 @@ export function PixelatedImage({
       <div className={cn('relative overflow-hidden', className)}>
         {!loaded && <Shimmer />}
         <img
-          src={src}
+          src={activeSrc}
           alt={alt}
           className="w-full h-full object-cover"
-          onLoad={() => setLoaded(true)}
-          onError={() => setError(true)}
+          onLoad={handleLoad}
+          onError={handleError}
           referrerPolicy="no-referrer"
         />
       </div>
@@ -71,10 +96,10 @@ export function PixelatedImage({
       <div className={cn('relative overflow-hidden', className)}>
         {!loaded && <Shimmer />}
         <img
-          src={src}
+          src={activeSrc}
           alt={alt}
-          onLoad={() => setLoaded(true)}
-          onError={() => setError(true)}
+          onLoad={handleLoad}
+          onError={handleError}
           referrerPolicy="no-referrer"
           style={{
             width: `${renderSize}px`,
@@ -101,10 +126,10 @@ export function PixelatedImage({
     <div className={cn('relative overflow-hidden', className)}>
       {!loaded && <Shimmer />}
       <img
-        src={src}
+        src={activeSrc}
         alt={alt}
-        onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onLoad={handleLoad}
+        onError={handleError}
         referrerPolicy="no-referrer"
         style={{
           width: '100%',
@@ -117,6 +142,29 @@ export function PixelatedImage({
       />
     </div>
   );
+}
+
+function getImageSourceCandidates(src: string): string[] {
+  const normalized = src.trim();
+  if (!normalized) {
+    return [''];
+  }
+
+  const candidates = [normalized];
+
+  try {
+    const parsed = new URL(normalized);
+    const withoutProtocol = `${parsed.host}${parsed.pathname}${parsed.search}`;
+
+    // Remote media hosts, especially Reddit preview URLs, can reject direct embedding.
+    // Retrying through image proxies makes the frontend-only app much more resilient.
+    candidates.push(`https://images.weserv.nl/?url=${encodeURIComponent(withoutProtocol)}`);
+    candidates.push(`https://wsrv.nl/?url=${encodeURIComponent(withoutProtocol)}&n=-1`);
+  } catch {
+    // Keep the original source only if URL parsing fails.
+  }
+
+  return [...new Set(candidates)];
 }
 
 function Shimmer() {
