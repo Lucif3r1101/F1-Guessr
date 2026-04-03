@@ -162,6 +162,42 @@ async function canLoadVideo(url: string): Promise<boolean> {
   return attempt;
 }
 
+function getImageSourceCandidates(url: string): string[] {
+  const normalized = url.trim();
+  if (!normalized) return [];
+
+  const candidates = [normalized];
+
+  try {
+    const parsed = new URL(normalized);
+    const withoutProtocol = `${parsed.host}${parsed.pathname}${parsed.search}`;
+    candidates.push(`https://images.weserv.nl/?url=${encodeURIComponent(withoutProtocol)}`);
+    candidates.push(`https://wsrv.nl/?url=${encodeURIComponent(withoutProtocol)}&n=-1`);
+  } catch {
+    // Keep the original source only if URL parsing fails.
+  }
+
+  return [...new Set(candidates)];
+}
+
+async function resolveImageUrl(url: string | null): Promise<string | null> {
+  if (!url) return null;
+
+  const candidates = getImageSourceCandidates(url);
+  for (const candidate of candidates) {
+    if (await canLoadImage(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+async function resolveVideoUrl(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  return (await canLoadVideo(url)) ? url : null;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Answer detection
 // ────────────────────────────────────────────────────────────────────────────
@@ -289,12 +325,10 @@ async function tryFetchRedditChallenges(count: number): Promise<F1Challenge[]> {
 
     const rawImageUrl = getImageFromPost(post);
     const rawVideoUrl = getVideoFromPost(post);
-    const [imageOk, videoOk] = await Promise.all([
-      rawImageUrl ? canLoadImage(rawImageUrl) : Promise.resolve(false),
-      rawVideoUrl ? canLoadVideo(rawVideoUrl) : Promise.resolve(false),
+    const [imageUrl, videoUrl] = await Promise.all([
+      resolveImageUrl(rawImageUrl),
+      resolveVideoUrl(rawVideoUrl),
     ]);
-    const imageUrl = imageOk ? rawImageUrl : null;
-    const videoUrl = videoOk ? rawVideoUrl : null;
 
     if (!imageUrl && !videoUrl) continue;
 

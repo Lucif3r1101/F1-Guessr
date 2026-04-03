@@ -26,6 +26,7 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   const [revealed, setRevealed] = useState(false);
   const [lastResult, setLastResult] = useState<{ correct: boolean; points: number } | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [useFillInBlank, setUseFillInBlank] = useState(false);
 
   const handleExpire = useCallback(() => {
     if (!answered) {
@@ -45,9 +46,10 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
     setRevealed(false);
     setLastResult(null);
     setShowHint(false);
+    setUseFillInBlank(challenge?.options.length === 0 || (config.level >= 5 && Math.random() > 0.6));
     start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.currentQuestionIndex, state.currentLevel]);
+  }, [state.currentQuestionIndex, state.currentLevel, challenge?.id]);
 
   const handleAnswer = useCallback((answer: string) => {
     if (answered) return;
@@ -76,8 +78,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
       </div>
     );
   }
-
-  const useFillInBlank = challenge.options.length === 0 || (config.level >= 5 && Math.random() > 0.6);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">

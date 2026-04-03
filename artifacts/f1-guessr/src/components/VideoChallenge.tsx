@@ -15,42 +15,66 @@ export function VideoChallenge({
   className,
 }: VideoChallengeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+    setPlaying(false);
+    setReady(false);
+  }, [src]);
+
+  useEffect(() => {
+    return () => {
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const schedulePause = () => {
+    if (stopTimerRef.current) {
+      clearTimeout(stopTimerRef.current);
+    }
+
+    stopTimerRef.current = setTimeout(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.pause();
+      setPlaying(false);
+    }, clipDurationSeconds * 1000);
+  };
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !ready) return;
 
     video.muted = true;
-    video.loop = true;
+    video.loop = revealed;
 
     if (!revealed) {
       video.currentTime = 0;
-      void video.play().then(() => setPlaying(true)).catch(() => setError(true));
-
-      const timer = setTimeout(() => {
-        video.pause();
-        setPlaying(false);
-      }, clipDurationSeconds * 1000);
-
-      return () => clearTimeout(timer);
+      void video.play().then(() => {
+        setPlaying(true);
+        schedulePause();
+      }).catch(() => setError(true));
+      return undefined;
     } else {
       void video.play().then(() => setPlaying(true)).catch(() => {});
       return undefined;
     }
-  }, [src, revealed, clipDurationSeconds]);
+  }, [src, revealed, clipDurationSeconds, ready]);
 
   const handleReplay = () => {
     const video = videoRef.current;
-    if (!video || revealed) return;
+    if (!video || revealed || !ready) return;
     video.currentTime = 0;
     void video.play().then(() => {
       setPlaying(true);
-      setTimeout(() => {
-        video.pause();
-        setPlaying(false);
-      }, clipDurationSeconds * 1000);
+      schedulePause();
     });
   };
 
@@ -74,9 +98,11 @@ export function VideoChallenge({
         playsInline
         muted
         crossOrigin="anonymous"
+        preload="metadata"
+        onLoadedData={() => setReady(true)}
         onError={() => setError(true)}
       />
-      {!revealed && !playing && (
+      {!revealed && ready && !playing && (
         <button
           onClick={handleReplay}
           className="absolute inset-0 flex items-center justify-center bg-black/50 hover:bg-black/40 transition-colors"
@@ -95,6 +121,11 @@ export function VideoChallenge({
       {!revealed && (
         <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
           {clipDurationSeconds}s clip
+        </div>
+      )}
+      {!revealed && !ready && !error && (
+        <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-2 border-gray-700 border-t-red-500 animate-spin" />
         </div>
       )}
     </div>
