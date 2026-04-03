@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Lightbulb, Home } from 'lucide-react';
 import { TimerBar } from '@/components/TimerBar';
@@ -24,17 +24,33 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   const challenge: F1Challenge | undefined = state.challenges[state.currentQuestionIndex];
   const [answered, setAnswered] = useState(false);
   const [revealed, setRevealed] = useState(false);
-  const [lastResult, setLastResult] = useState<{ correct: boolean; points: number } | null>(null);
+  const [lastResult, setLastResult] = useState<{ correct: boolean; points: number; timedOut?: boolean } | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [useFillInBlank, setUseFillInBlank] = useState(false);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAdvanceTimeout = useCallback(() => {
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearAdvanceTimeout();
+  }, [clearAdvanceTimeout]);
 
   const handleExpire = useCallback(() => {
     if (!answered) {
+      clearAdvanceTimeout();
       setAnswered(true);
       setRevealed(true);
-      onAnswer('', 0);
+      setLastResult({ correct: false, points: 0, timedOut: true });
+      advanceTimeoutRef.current = setTimeout(() => {
+        onAnswer('', 0);
+      }, 1800);
     }
-  }, [answered, onAnswer]);
+  }, [answered, clearAdvanceTimeout, onAnswer]);
 
   const { timeRemainingMs, secondsRemaining, percentageRemaining, start, stop } = useCountdown(
     config.timePerQuestion,
@@ -42,6 +58,7 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   );
 
   useEffect(() => {
+    clearAdvanceTimeout();
     setAnswered(false);
     setRevealed(false);
     setLastResult(null);
@@ -54,6 +71,7 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   const handleAnswer = useCallback((answer: string) => {
     if (answered) return;
     stop();
+    clearAdvanceTimeout();
     const correct = answer.toLowerCase().trim() === challenge?.answer.toLowerCase().trim();
     setAnswered(true);
     setRevealed(true);
@@ -61,8 +79,10 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
       correct,
       points: correct ? Math.floor((timeRemainingMs / (config.timePerQuestion * 1000)) * config.basePoints + config.basePoints) : 0,
     });
-    onAnswer(answer, timeRemainingMs);
-  }, [answered, challenge, timeRemainingMs, config, stop, onAnswer]);
+    advanceTimeoutRef.current = setTimeout(() => {
+      onAnswer(answer, timeRemainingMs);
+    }, correct ? 900 : 1800);
+  }, [answered, challenge, clearAdvanceTimeout, timeRemainingMs, config, stop, onAnswer]);
 
   const handleHint = () => {
     if (!showHint) {
@@ -164,7 +184,7 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
                       'text-sm font-bold px-3 py-1 rounded-lg inline-block',
                       lastResult?.correct ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white',
                     )}>
-                      {lastResult?.correct ? `+${lastResult.points} pts` : 'Time up!'}
+                      {lastResult?.correct ? `+${lastResult.points} pts` : lastResult?.timedOut ? 'Time up!' : 'Wrong answer'}
                     </div>
                     {!lastResult?.correct && (
                       <div className="text-gray-300 text-xs mt-1 ml-1">

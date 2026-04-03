@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Trophy, ChevronRight, RotateCcw } from 'lucide-react';
-import { getLevelConfig, getScoreGrade, getLevelUnlockMessage } from '@/lib/gameEngine';
+import { getLevelConfig, getScoreGrade, getLevelUnlockMessage, getPassingScore, hasPassedLevel } from '@/lib/gameEngine';
 import type { GameState } from '@/lib/gameEngine';
 
 interface LevelCompleteProps {
@@ -13,6 +13,8 @@ interface LevelCompleteProps {
 export function LevelComplete({ state, onNextLevel, onRestart, onGoHome }: LevelCompleteProps) {
   const config = getLevelConfig(state.currentLevel);
   const maxPossible = config.basePoints * config.questionsCount * 2;
+  const passingScore = getPassingScore(maxPossible);
+  const passedLevel = hasPassedLevel(state.score, maxPossible);
   const { grade, color, message } = getScoreGrade(state.score, maxPossible);
   const correctCount = state.answers.filter(a => a.correct).length;
   const accuracy = state.answers.length > 0 ? Math.round((correctCount / state.answers.length) * 100) : 0;
@@ -64,7 +66,7 @@ export function LevelComplete({ state, onNextLevel, onRestart, onGoHome }: Level
           transition={{ delay: 0.4 }}
           className="space-y-3"
         >
-          {state.currentLevel < 10 && (
+          {state.currentLevel < 10 && passedLevel && (
             <>
               <div className="bg-gray-900 border border-red-800/40 rounded-xl p-4 mb-4">
                 <div className="text-xs text-red-400 uppercase tracking-wider mb-1">Unlocked</div>
@@ -82,13 +84,22 @@ export function LevelComplete({ state, onNextLevel, onRestart, onGoHome }: Level
               </button>
             </>
           )}
+          {!passedLevel && (
+            <div className="bg-gray-900 border border-yellow-700/40 rounded-xl p-4 mb-2">
+              <div className="text-xs text-yellow-400 uppercase tracking-wider mb-1">Score Needed</div>
+              <div className="font-bold text-white">Reach {passingScore.toLocaleString()} points to unlock Level {state.currentLevel + 1}</div>
+              <div className="text-xs text-gray-400 mt-1">
+                Current level score: {state.score.toLocaleString()} / {passingScore.toLocaleString()}
+              </div>
+            </div>
+          )}
           <button
             onClick={onRestart}
             data-testid="button-restart-game"
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            Play Again
+            {passedLevel ? 'Play Again' : 'Retry Level'}
           </button>
           <button
             onClick={onGoHome}

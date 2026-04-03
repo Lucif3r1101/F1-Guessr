@@ -1,113 +1,169 @@
 import { motion } from 'framer-motion';
-import { Trophy, Zap, Eye, Film } from 'lucide-react';
-import { LEVEL_CONFIGS } from '@/lib/gameEngine';
-import { cn } from '@/lib/utils';
+import { Trophy, Zap, Eye, Film, Lock, Gauge, CalendarDays } from 'lucide-react';
+import { getLevelConfig } from '@/lib/gameEngine';
 
 interface LobbyProps {
-  onStartGame: (level: number) => void;
+  onStartGame: () => void;
   totalScore: number;
+  dailyBestScore: number;
+  highestUnlockedLevel: number;
 }
 
-export function Lobby({ onStartGame, totalScore }: LobbyProps) {
+const featureCards = [
+  { icon: Eye, label: 'Pixel Rush', desc: 'Blurred race moments and trackside clues' },
+  { icon: Zap, label: 'Zoom Break', desc: 'Micro details from helmets, cars, and garages' },
+  { icon: Film, label: 'Clip Hunt', desc: 'Short live Reddit videos that refresh often' },
+];
+
+export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlockedLevel }: LobbyProps) {
+  const unlockedConfig = getLevelConfig(highestUnlockedLevel);
+  const hasProgress = highestUnlockedLevel > 1 || dailyBestScore > 0;
+
   return (
-    <div className="min-h-screen bg-black text-white overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10"
-        >
-          <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-600/40 text-red-400 text-xs px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
-            <Zap className="w-3 h-3" />
-            Live from Reddit · Real F1 Content
-          </div>
-          <h1 className="text-6xl font-black mb-3 leading-none">
-            <span className="text-red-600">F1</span> GUESSR
-          </h1>
-          <p className="text-gray-400 text-lg max-w-md mx-auto">
-            Can you identify F1 moments from pixelated images, zoomed clips, and Reddit posts? Race through 10 levels of increasing difficulty.
-          </p>
-        </motion.div>
+    <div className="min-h-screen overflow-y-auto bg-black text-white">
+      <div className="relative isolate">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,rgba(255,72,0,0.26),transparent_52%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-24 h-80 w-80 -translate-x-1/2 rounded-full bg-red-600/10 blur-3xl" />
 
-        <div className="grid grid-cols-3 gap-4 mb-10">
-          {[
-            { icon: Eye, label: 'Pixelated', desc: 'Identify blurred images' },
-            { icon: Zap, label: 'Zoomed In', desc: 'Guess from close-up shots' },
-            { icon: Film, label: 'Clips', desc: 'Watch short Reddit videos' },
-          ].map(({ icon: Icon, label, desc }, i) => (
-            <motion.div
-              key={label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center"
-            >
-              <Icon className="w-6 h-6 text-red-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">{label}</div>
-              <div className="text-xs text-gray-500 mt-1">{desc}</div>
-            </motion.div>
-          ))}
-        </div>
+        <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="race-panel race-grid relative overflow-hidden rounded-[2rem] border border-white/10 p-6 sm:p-8 lg:p-10"
+          >
+            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 bg-[linear-gradient(135deg,transparent,rgba(255,255,255,0.05),transparent)] lg:block" />
 
-        {totalScore > 0 && (
-          <div className="text-center mb-6 bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <Trophy className="w-5 h-5 text-yellow-400 inline mr-2" />
-            <span className="text-gray-300">Session Score: </span>
-            <span className="text-yellow-400 font-bold text-lg">{totalScore.toLocaleString()}</span>
-          </div>
-        )}
-
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-400" />
-            Choose Your Starting Level
-          </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {LEVEL_CONFIGS.map((config, i) => (
-              <motion.button
-                key={config.level}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => onStartGame(config.level)}
-                data-testid={`button-start-level-${config.level}`}
-                className={cn(
-                  'group relative p-3 rounded-xl border-2 text-left transition-all duration-200',
-                  'hover:scale-[1.03] active:scale-[0.97]',
-                  config.level <= 3
-                    ? 'border-emerald-700/50 bg-emerald-950/30 hover:border-emerald-500'
-                    : config.level <= 6
-                    ? 'border-orange-700/50 bg-orange-950/20 hover:border-orange-500'
-                    : 'border-red-700/50 bg-red-950/20 hover:border-red-500',
-                )}
-              >
-                <div className={cn(
-                  'text-2xl font-black mb-1',
-                  config.level <= 3 ? 'text-emerald-400' : config.level <= 6 ? 'text-orange-400' : 'text-red-400',
-                )}>
-                  {config.level}
+            <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.35em] text-red-300">
+                  <Zap className="h-3.5 w-3.5" />
+                  Live Grid Locked
                 </div>
-                <div className="text-xs font-bold text-white">{config.name}</div>
-                <div className="text-xs text-gray-500 mt-1 leading-tight">{config.timePerQuestion}s · {config.lives} ❤️</div>
-              </motion.button>
-            ))}
-          </div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 }}
+                  className="race-title mt-6 max-w-3xl text-5xl font-black leading-none sm:text-6xl lg:text-7xl"
+                >
+                  <span className="block text-white">F1</span>
+                  <span className="block bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 bg-clip-text text-transparent">
+                    GUESSR
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.14 }}
+                  className="mt-5 max-w-2xl text-base leading-7 text-gray-300 sm:text-lg"
+                >
+                  Chase fresh Formula 1 moments pulled from live Reddit feeds. Progress is locked by performance,
+                  today&apos;s best score stays in this browser, and the next level only opens when you actually earn it.
+                </motion.p>
+
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                  {featureCards.map(({ icon: Icon, label, desc }, index) => (
+                    <motion.div
+                      key={label}
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.18 + index * 0.08 }}
+                      className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 backdrop-blur-sm"
+                    >
+                      <div className="mb-3 inline-flex rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-300">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-sm font-bold text-white">{label}</div>
+                      <div className="mt-1 text-sm text-gray-400">{desc}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.16 }}
+                className="race-glow rounded-[1.75rem] border border-white/10 bg-[#0d0d0d]/95 p-5 sm:p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.32em] text-red-400">Driver Briefing</div>
+                    <div className="mt-2 text-2xl font-black text-white">
+                      {hasProgress ? `Resume from Level ${highestUnlockedLevel}` : 'Start your first stint'}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
+                    <div className="text-[10px] uppercase tracking-[0.28em] text-gray-500">Tier</div>
+                    <div className="mt-1 text-sm font-bold text-yellow-300">{unlockedConfig.name}</div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3">
+                  <StatRow icon={CalendarDays} label="Daily Best" value={dailyBestScore.toLocaleString()} accent="text-yellow-300" />
+                  <StatRow icon={Gauge} label="Unlocked Level" value={`Level ${highestUnlockedLevel}`} accent="text-white" />
+                  <StatRow icon={Lock} label="Progress Rule" value="Pass score required" accent="text-red-300" />
+                </div>
+
+                {totalScore > 0 && (
+                  <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-300">
+                      <Trophy className="h-4 w-4 text-yellow-300" />
+                      Last Session Score
+                    </div>
+                    <div className="mt-2 text-3xl font-black text-white">{totalScore.toLocaleString()}</div>
+                  </div>
+                )}
+
+                <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.28em] text-red-300">Locked Progression</div>
+                  <p className="mt-2 text-sm leading-6 text-gray-300">
+                    Players cannot skip ahead. The browser remembers today&apos;s unlocked level, and the next one only opens after clearing the current score gate.
+                  </p>
+                </div>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.28 }}
+                  onClick={onStartGame}
+                  data-testid="button-start-from-beginning"
+                  className="mt-6 w-full rounded-2xl bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-6 py-4 text-lg font-black tracking-[0.16em] text-black transition-transform duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {hasProgress ? `CONTINUE LEVEL ${highestUnlockedLevel}` : 'START FROM ROOKIE'}
+                </motion.button>
+
+                <div className="mt-4 text-center text-xs uppercase tracking-[0.22em] text-gray-500">
+                  Live challenge cache refreshes every minute
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          onClick={() => onStartGame(1)}
-          data-testid="button-start-from-beginning"
-          className="w-full py-4 rounded-2xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-xl transition-colors"
-        >
-          START FROM ROOKIE →
-        </motion.button>
+interface StatRowProps {
+  icon: typeof Trophy;
+  label: string;
+  value: string;
+  accent: string;
+}
 
-        <p className="text-center text-xs text-gray-600 mt-4">
-          Content sourced live from r/formula1 · No data stored · Refreshes every session
-        </p>
+function StatRow({ icon: Icon, label, value, accent }: StatRowProps) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-white/10 bg-black/30 p-2 text-red-300">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.24em] text-gray-500">{label}</div>
+          <div className={`mt-1 text-sm font-bold ${accent}`}>{value}</div>
+        </div>
       </div>
     </div>
   );

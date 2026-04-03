@@ -261,6 +261,14 @@ export function getScoreGrade(score: number, maxPossible: number): { grade: stri
   return { grade: 'D', color: '#F44336', message: 'Back to the Simulator' };
 }
 
+export function getPassingScore(maxPossible: number): number {
+  return Math.ceil(maxPossible * 0.45);
+}
+
+export function hasPassedLevel(score: number, maxPossible: number): boolean {
+  return score >= getPassingScore(maxPossible);
+}
+
 export function formatTime(ms: number): string {
   const s = Math.ceil(ms / 1000);
   return `${s}s`;

@@ -19,23 +19,24 @@ function GameApp() {
     submitAnswer,
     useHint,
     advanceToNextLevel,
-    resetGame,
     goToLobby,
+    dailyProgress,
+    canContinueFromLevel,
   } = useGameState();
 
   if (error) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <div className="text-center max-w-sm">
-          <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-red-400 mb-2">Failed to Load</h2>
-          <p className="text-gray-400 text-sm mb-6">{error}</p>
+        <div className="race-panel max-w-md w-full rounded-[2rem] border border-red-500/20 p-8 text-center">
+          <div className="mx-auto mb-5 flex h-18 w-18 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-4xl">!</div>
+          <h2 className="mb-2 text-2xl font-black text-red-300">Grid Feed Interrupted</h2>
+          <p className="mb-6 text-sm leading-6 text-gray-400">{error}</p>
           <button
             onClick={goToLobby}
-            className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-colors"
+            className="w-full rounded-2xl bg-gradient-to-r from-red-600 to-orange-500 py-3 font-black tracking-[0.16em] text-white transition-transform hover:scale-[1.01] active:scale-[0.99]"
             data-testid="button-retry"
           >
-            Try Again
+            TRY AGAIN
           </button>
         </div>
       </div>
@@ -44,17 +45,21 @@ function GameApp() {
 
   if (state.gamePhase === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-gray-800" />
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="race-panel race-grid w-full max-w-lg rounded-[2rem] border border-white/10 p-8 text-center">
+          <div className="relative mx-auto mb-6 h-24 w-24">
+            <div className="absolute inset-0 rounded-full border-4 border-white/5" />
             <div className="absolute inset-0 rounded-full border-4 border-red-600 border-t-transparent animate-spin" />
-            <div className="absolute inset-3 rounded-full bg-red-600/20 flex items-center justify-center">
-              <span className="text-red-400 text-xs font-bold">F1</span>
+            <div className="absolute inset-4 flex items-center justify-center rounded-full bg-gradient-to-br from-red-500/25 to-yellow-400/10">
+              <span className="text-sm font-black tracking-[0.2em] text-red-300">F1</span>
             </div>
           </div>
-          <p className="text-gray-400 text-sm animate-pulse">Loading live F1 content from Reddit...</p>
-          <p className="text-gray-600 text-xs mt-2">Level {state.currentLevel}: {state.currentLevel > 1 ? 'Fetching harder challenges...' : 'Gathering F1 moments...'}</p>
+          <div className="text-xs uppercase tracking-[0.35em] text-red-400">Building Race Pack</div>
+          <p className="mt-3 text-2xl font-black text-white">Loading live F1 content</p>
+          <p className="mt-2 animate-pulse text-sm text-gray-400">Refreshing the live challenge cache and lining up your next session.</p>
+          <p className="mt-4 text-xs text-gray-600">
+            Level {state.currentLevel}: {state.currentLevel > 1 ? 'Fetching harder challenges...' : 'Gathering fresh F1 moments...'}
+          </p>
         </div>
       </div>
     );
@@ -65,8 +70,10 @@ function GameApp() {
       {state.gamePhase === 'lobby' && (
         <motion.div key="lobby" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <Lobby
-            onStartGame={startGame}
+            onStartGame={() => startGame(canContinueFromLevel)}
             totalScore={state.totalScore}
+            dailyBestScore={dailyProgress.dailyBestScore}
+            highestUnlockedLevel={canContinueFromLevel}
           />
         </motion.div>
       )}
