@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createInitialGameState, processAnswer, getLevelConfig, hasPassedLevel } from '@/lib/gameEngine';
 import type { GameState } from '@/lib/gameEngine';
 import { fetchChallengesForLevel } from '@/lib/redditService';
+import type { ChallengeMode, F1Challenge } from '@/lib/types';
 
 const STORAGE_KEY = 'f1-guessr-daily-progress-v1';
 
@@ -10,6 +11,8 @@ interface DailyProgress {
   dailyBestScore: number;
   highestUnlockedLevel: number;
 }
+
+const DEFAULT_CHALLENGE_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip'];
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -52,6 +55,7 @@ export function useGameState() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dailyProgress, setDailyProgress] = useState<DailyProgress>(() => loadDailyProgress());
+  const [selectedModes, setSelectedModes] = useState<ChallengeMode[]>(DEFAULT_CHALLENGE_MODES);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -87,7 +91,11 @@ export function useGameState() {
     }
   }, [state.currentLevel, state.gamePhase, state.score]);
 
-  const loadLevel = useCallback(async (level: number, preserveTotalScore: number = 0) => {
+  const loadLevel = useCallback(async (
+    level: number,
+    preserveTotalScore: number = 0,
+    allowedModes: ChallengeMode[] = DEFAULT_CHALLENGE_MODES,
+  ) => {
     setIsLoading(true);
     setError(null);
 
@@ -101,12 +109,17 @@ export function useGameState() {
 
     try {
       const challenges = await fetchChallengesForLevel(level);
+      const filteredChallenges = filterChallengesByModes(challenges, allowedModes);
 
-      if (challenges.length === 0) {
-        throw new Error('No F1 content found from Reddit. Please check your internet connection and try again.');
+      if (filteredChallenges.length === 0) {
+        throw new Error('No live F1 content matched the selected challenge modes. Try a different mix.');
       }
 
-      const selected = challenges.slice(0, config.questionsCount);
+      if (filteredChallenges.length < config.questionsCount) {
+        throw new Error(`Only ${filteredChallenges.length} playable challenge(s) matched the selected modes. Add more modes to continue.`);
+      }
+
+      const selected = filteredChallenges.slice(0, config.questionsCount);
 
       setState(prev => ({
         ...prev,
@@ -126,9 +139,14 @@ export function useGameState() {
     }
   }, []);
 
-  const startGame = useCallback(async (level: number = dailyProgress.highestUnlockedLevel) => {
-    await loadLevel(level, 0);
-  }, [dailyProgress.highestUnlockedLevel, loadLevel]);
+  const startGame = useCallback(async (
+    level: number = dailyProgress.highestUnlockedLevel,
+    modes: ChallengeMode[] = selectedModes,
+  ) => {
+    const normalizedModes = modes.length > 0 ? modes : DEFAULT_CHALLENGE_MODES;
+    setSelectedModes(normalizedModes);
+    await loadLevel(level, 0, normalizedModes);
+  }, [dailyProgress.highestUnlockedLevel, loadLevel, selectedModes]);
 
   const submitAnswer = useCallback((userAnswer: string, timeRemainingMs: number) => {
     setState(prev => {
@@ -171,10 +189,10 @@ export function useGameState() {
 
       const savedTotal = prev.totalScore;
       // Kick off async load
-      loadLevel(nextLevel, savedTotal);
+      loadLevel(nextLevel, savedTotal, selectedModes);
       return { ...prev, gamePhase: 'loading' };
     });
-  }, [loadLevel]);
+  }, [loadLevel, selectedModes]);
 
   const resetGame = useCallback(() => {
     setState(createInitialGameState(1));
@@ -206,5 +224,11 @@ export function useGameState() {
     goToLobby,
     dailyProgress,
     canContinueFromLevel,
+    selectedModes,
   };
+}
+
+function filterChallengesByModes(challenges: F1Challenge[], allowedModes: ChallengeMode[]) {
+  const modeSet = new Set<ChallengeMode>(allowedModes.length > 0 ? allowedModes : DEFAULT_CHALLENGE_MODES);
+  return challenges.filter((challenge) => modeSet.has(challenge.type));
 }

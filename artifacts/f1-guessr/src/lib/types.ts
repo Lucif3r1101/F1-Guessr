@@ -1,6 +1,8 @@
+export type ChallengeMode = 'pixelated' | 'zoomed' | 'video' | 'clip';
+
 export interface F1Challenge {
   id: string;
-  type: 'pixelated' | 'zoomed' | 'video' | 'clip';
+  type: ChallengeMode;
   imageUrl?: string;
   videoUrl?: string;
   title: string;

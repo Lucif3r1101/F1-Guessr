@@ -7,6 +7,7 @@ import { Lobby } from '@/pages/Lobby';
 import { GameScreen } from '@/pages/GameScreen';
 import { LevelComplete, GameOver, Victory } from '@/pages/LevelComplete';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { ChallengeMode } from '@/lib/types';
 
 const queryClient = new QueryClient();
 
@@ -70,7 +71,7 @@ function GameApp() {
       {state.gamePhase === 'lobby' && (
         <motion.div key="lobby" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <Lobby
-            onStartGame={() => startGame(canContinueFromLevel)}
+            onStartGame={(modes: ChallengeMode[]) => startGame(canContinueFromLevel, modes)}
             totalScore={state.totalScore}
             dailyBestScore={dailyProgress.dailyBestScore}
             highestUnlockedLevel={canContinueFromLevel}

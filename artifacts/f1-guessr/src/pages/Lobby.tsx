@@ -1,23 +1,49 @@
 import { motion } from 'framer-motion';
 import { Trophy, Zap, Eye, Film, Lock, Gauge, CalendarDays } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { getLevelConfig } from '@/lib/gameEngine';
+import type { ChallengeMode } from '@/lib/types';
 
 interface LobbyProps {
-  onStartGame: () => void;
+  onStartGame: (modes: ChallengeMode[]) => void;
   totalScore: number;
   dailyBestScore: number;
   highestUnlockedLevel: number;
 }
 
 const featureCards = [
-  { icon: Eye, label: 'Pixel Rush', desc: 'Blurred race moments and trackside clues' },
-  { icon: Zap, label: 'Zoom Break', desc: 'Micro details from helmets, cars, and garages' },
-  { icon: Film, label: 'Clip Hunt', desc: 'Short live Reddit videos that refresh often' },
+  { icon: Eye, label: 'Pixel Rush', desc: 'Blurred race moments and trackside clues', modes: ['pixelated'] as ChallengeMode[] },
+  { icon: Zap, label: 'Zoom Break', desc: 'Micro details from helmets, cars, and garages', modes: ['zoomed'] as ChallengeMode[] },
+  { icon: Film, label: 'Clip Hunt', desc: 'Short live Reddit videos that refresh often', modes: ['video', 'clip'] as ChallengeMode[] },
 ];
+
+const ALL_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip'];
 
 export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlockedLevel }: LobbyProps) {
   const unlockedConfig = getLevelConfig(highestUnlockedLevel);
   const hasProgress = highestUnlockedLevel > 1 || dailyBestScore > 0;
+  const [selectedModes, setSelectedModes] = useState<ChallengeMode[]>(ALL_MODES);
+  const allModesSelected = selectedModes.length === ALL_MODES.length;
+
+  const selectionLabel = useMemo(() => {
+    if (allModesSelected) return 'All Modes';
+    return featureCards
+      .filter((card) => card.modes.every((mode) => selectedModes.includes(mode)))
+      .map((card) => card.label)
+      .join(' · ');
+  }, [allModesSelected, selectedModes]);
+
+  const toggleModeGroup = (modes: ChallengeMode[]) => {
+    setSelectedModes((current) => {
+      const groupSelected = modes.every((mode) => current.includes(mode));
+      if (groupSelected) {
+        const next = current.filter((mode) => !modes.includes(mode));
+        return next.length > 0 ? next : current;
+      }
+
+      return Array.from(new Set([...current, ...modes]));
+    });
+  };
 
   return (
     <div className="min-h-screen overflow-y-auto bg-black text-white">
@@ -58,26 +84,36 @@ export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlocked
                   transition={{ delay: 0.14 }}
                   className="mt-5 max-w-2xl text-base leading-7 text-gray-300 sm:text-lg"
                 >
-                  Chase fresh Formula 1 moments pulled from live Reddit feeds. Progress is locked by performance,
-                  today&apos;s best score stays in this browser, and the next level only opens when you actually earn it.
+                  Chase fresh Formula 1 moments pulled from live Reddit feeds. Pick your challenge mix, lock into a run,
+                  and work your way up the grid one earned level at a time.
                 </motion.p>
 
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                  {featureCards.map(({ icon: Icon, label, desc }, index) => (
-                    <motion.div
-                      key={label}
-                      initial={{ opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.18 + index * 0.08 }}
-                      className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 backdrop-blur-sm"
-                    >
-                      <div className="mb-3 inline-flex rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-300">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="text-sm font-bold text-white">{label}</div>
-                      <div className="mt-1 text-sm text-gray-400">{desc}</div>
-                    </motion.div>
-                  ))}
+                  {featureCards.map(({ icon: Icon, label, desc, modes }, index) => {
+                    const active = modes.every((mode) => selectedModes.includes(mode));
+
+                    return (
+                      <motion.button
+                        key={label}
+                        type="button"
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.18 + index * 0.08 }}
+                        onClick={() => toggleModeGroup(modes)}
+                        className={`rounded-2xl border p-4 text-left backdrop-blur-sm transition-all duration-200 ${
+                          active
+                            ? 'border-red-400/60 bg-red-500/12 shadow-[0_12px_32px_rgba(225,6,0,0.16)]'
+                            : 'border-white/8 bg-white/[0.03] hover:border-white/20'
+                        }`}
+                      >
+                        <div className="mb-3 inline-flex rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-300">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="text-sm font-bold text-white">{label}</div>
+                        <div className="mt-1 text-sm text-gray-400">{desc}</div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -103,7 +139,7 @@ export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlocked
                 <div className="mt-6 grid gap-3">
                   <StatRow icon={CalendarDays} label="Daily Best" value={dailyBestScore.toLocaleString()} accent="text-yellow-300" />
                   <StatRow icon={Gauge} label="Unlocked Level" value={`Level ${highestUnlockedLevel}`} accent="text-white" />
-                  <StatRow icon={Lock} label="Progress Rule" value="Pass score required" accent="text-red-300" />
+                  <StatRow icon={Lock} label="Challenge Mix" value={selectionLabel} accent="text-red-300" />
                 </div>
 
                 {totalScore > 0 && (
@@ -117,17 +153,26 @@ export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlocked
                 )}
 
                 <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
-                  <div className="text-xs uppercase tracking-[0.28em] text-red-300">Locked Progression</div>
+                  <div className="text-xs uppercase tracking-[0.28em] text-red-300">Mode Select</div>
                   <p className="mt-2 text-sm leading-6 text-gray-300">
-                    Players cannot skip ahead. The browser remembers today&apos;s unlocked level, and the next one only opens after clearing the current score gate.
+                    Choose one mode, two modes, or all of them before you start. The browser still remembers today&apos;s unlocked level, and the next one only opens after clearing the score gate.
                   </p>
+                  {!allModesSelected && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModes(ALL_MODES)}
+                      className="mt-3 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.22em] text-gray-300 transition-colors hover:border-white/25 hover:text-white"
+                    >
+                      Choose All
+                    </button>
+                  )}
                 </div>
 
                 <motion.button
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.28 }}
-                  onClick={onStartGame}
+                  onClick={() => onStartGame(selectedModes)}
                   data-testid="button-start-from-beginning"
                   className="mt-6 w-full rounded-2xl bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-6 py-4 text-lg font-black tracking-[0.16em] text-black transition-transform duration-200 hover:scale-[1.01] active:scale-[0.99]"
                 >
