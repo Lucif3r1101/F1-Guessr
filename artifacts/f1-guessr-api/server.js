@@ -294,13 +294,13 @@ function detectAnswer(post) {
     answer,
     questionType: "general",
     options: [],
-    hint: "An F1 moment from Reddit",
+    hint: "",
   };
 }
 
 function buildHint(title, categoryHint) {
   const cleanTitle = title.replace(/\s+/g, " ").trim();
-  if (categoryHint === "An F1 moment from Reddit") {
+  if (!categoryHint) {
     return `Reddit title clue: ${cleanTitle}`;
   }
 
