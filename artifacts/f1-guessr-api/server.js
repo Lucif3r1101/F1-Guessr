@@ -218,7 +218,7 @@ async function buildChallenge(post) {
     title: post.title,
     answer: detected.answer,
     options: detected.options,
-    hint: detected.hint,
+    hint: buildHint(post.title, detected.hint),
     redditPermalink: `https://reddit.com${post.permalink}`,
     difficulty: Math.ceil(Math.random() * 10),
     questionType: detected.questionType,
@@ -296,6 +296,11 @@ function detectAnswer(post) {
     options: [],
     hint: "An F1 moment from Reddit",
   };
+}
+
+function buildHint(title, categoryHint) {
+  const cleanTitle = title.replace(/\s+/g, " ").trim();
+  return `${categoryHint} | Reddit title: ${cleanTitle}`;
 }
 
 function generateOptions(correct, pool) {

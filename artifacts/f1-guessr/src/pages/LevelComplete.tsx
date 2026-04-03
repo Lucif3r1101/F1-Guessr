@@ -101,6 +101,11 @@ export function LevelComplete({ state, onNextLevel, onRestart, onGoHome }: Level
             <RotateCcw className="w-4 h-4" />
             {passedLevel ? 'Play Again' : 'Retry Level'}
           </button>
+          <p className="text-center text-xs text-gray-500 px-4">
+            {passedLevel
+              ? 'Restart sends you back to Level 1 for a fresh run, while today&apos;s browser score stays saved.'
+              : 'Retry restarts this same level, and today&apos;s browser score stays saved while you chase the unlock.'}
+          </p>
           <button
             onClick={onGoHome}
             data-testid="button-go-home"
@@ -149,6 +154,9 @@ export function GameOver({ state, onRestart, onGoHome }: GameOverProps) {
           >
             Try Again
           </button>
+          <p className="text-center text-xs text-gray-500 mb-3 px-4">
+            Restart begins again from Level 1, and today&apos;s browser score remains saved for the day.
+          </p>
           <button
             onClick={onGoHome}
             data-testid="button-go-home"
@@ -207,6 +215,9 @@ export function Victory({ state, onRestart, onGoHome }: VictoryProps) {
           >
             Play Again
           </button>
+          <p className="text-center text-xs text-gray-500 mb-3 px-4">
+            Another run starts from Level 1, and today&apos;s browser score stays on the board.
+          </p>
           <button
             onClick={onGoHome}
             data-testid="button-go-home"

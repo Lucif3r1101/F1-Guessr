@@ -201,8 +201,9 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
                 Identify the {challenge.questionType}:
               </div>
               {showHint && (
-                <div className="text-xs text-yellow-400 mt-1 bg-yellow-900/20 border border-yellow-700/30 rounded px-2 py-1">
-                  Hint: {challenge.hint}
+                <div className="mt-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-wider text-yellow-300/80 mb-1">Reddit clue</div>
+                  <div className="text-xs text-yellow-100 leading-relaxed">{challenge.hint}</div>
                 </div>
               )}
             </div>
