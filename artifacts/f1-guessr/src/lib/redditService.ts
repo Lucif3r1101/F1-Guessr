@@ -35,6 +35,8 @@ const REDDIT_BASES = [
   'https://www.reddit.com',
   'https://old.reddit.com',
 ];
+const MEDIA_LOAD_TIMEOUT_MS = 7000;
+const mediaValidationCache = new Map<string, Promise<boolean>>();
 
 async function fetchRedditFeed(
   subreddit: string,
@@ -81,6 +83,83 @@ export function getVideoFromPost(post: RedditPost): string | null {
     ?? post.secure_media?.reddit_video?.fallback_url
     ?? post.preview?.reddit_video_preview?.fallback_url;
   return v ? v.replace(/&amp;/g, '&') : null;
+}
+
+async function canLoadImage(url: string): Promise<boolean> {
+  if (typeof window === 'undefined') return true;
+  if (!url) return false;
+
+  const cached = mediaValidationCache.get(`image:${url}`);
+  if (cached) return cached;
+
+  const attempt = new Promise<boolean>((resolve) => {
+    const img = new Image();
+    const cleanup = () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+    const timer = window.setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, MEDIA_LOAD_TIMEOUT_MS);
+
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => {
+      window.clearTimeout(timer);
+      cleanup();
+      resolve(true);
+    };
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      cleanup();
+      resolve(false);
+    };
+    img.src = url;
+  });
+
+  mediaValidationCache.set(`image:${url}`, attempt);
+  return attempt;
+}
+
+async function canLoadVideo(url: string): Promise<boolean> {
+  if (typeof window === 'undefined') return true;
+  if (!url) return false;
+
+  const cached = mediaValidationCache.get(`video:${url}`);
+  if (cached) return cached;
+
+  const attempt = new Promise<boolean>((resolve) => {
+    const video = document.createElement('video');
+    const cleanup = () => {
+      video.onloadeddata = null;
+      video.onerror = null;
+      video.src = '';
+      video.load();
+    };
+    const timer = window.setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, MEDIA_LOAD_TIMEOUT_MS);
+
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    video.onloadeddata = () => {
+      window.clearTimeout(timer);
+      cleanup();
+      resolve(true);
+    };
+    video.onerror = () => {
+      window.clearTimeout(timer);
+      cleanup();
+      resolve(false);
+    };
+    video.src = url;
+  });
+
+  mediaValidationCache.set(`video:${url}`, attempt);
+  return attempt;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -201,11 +280,22 @@ async function tryFetchRedditChallenges(count: number): Promise<F1Challenge[]> {
 
   const shuffled = unique.sort(() => Math.random() - 0.5);
   const challenges: F1Challenge[] = [];
+  let inspectedPosts = 0;
 
   for (const post of shuffled) {
     if (challenges.length >= count) break;
-    const imageUrl = getImageFromPost(post);
-    const videoUrl = getVideoFromPost(post);
+    if (inspectedPosts >= count * 12) break;
+    inspectedPosts += 1;
+
+    const rawImageUrl = getImageFromPost(post);
+    const rawVideoUrl = getVideoFromPost(post);
+    const [imageOk, videoOk] = await Promise.all([
+      rawImageUrl ? canLoadImage(rawImageUrl) : Promise.resolve(false),
+      rawVideoUrl ? canLoadVideo(rawVideoUrl) : Promise.resolve(false),
+    ]);
+    const imageUrl = imageOk ? rawImageUrl : null;
+    const videoUrl = videoOk ? rawVideoUrl : null;
+
     if (!imageUrl && !videoUrl) continue;
 
     const detected = detectAnswer(post);
