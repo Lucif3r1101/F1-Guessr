@@ -12,7 +12,7 @@ interface DailyProgress {
   highestUnlockedLevel: number;
 }
 
-const DEFAULT_CHALLENGE_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip'];
+const DEFAULT_CHALLENGE_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip', 'audio'];
 const MIN_CHALLENGES_PER_RUN = 3;
 
 function getTodayKey() {

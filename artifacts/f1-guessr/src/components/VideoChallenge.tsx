@@ -2,7 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface VideoChallengeProps {
-  src: string;
+  src?: string;
+  youtubeVideoId?: string;
+  audioOnly?: boolean;
   revealed?: boolean;
   clipDurationSeconds?: number;
   className?: string;
@@ -10,6 +12,8 @@ interface VideoChallengeProps {
 
 export function VideoChallenge({
   src,
+  youtubeVideoId,
+  audioOnly = false,
   revealed = false,
   clipDurationSeconds = 3,
   className,
@@ -24,7 +28,7 @@ export function VideoChallenge({
     setError(false);
     setPlaying(false);
     setReady(false);
-  }, [src]);
+  }, [src, youtubeVideoId, audioOnly]);
 
   useEffect(() => {
     return () => {
@@ -85,6 +89,42 @@ export function VideoChallenge({
           <div className="text-4xl mb-2">🎬</div>
           <div className="text-sm">Video unavailable</div>
         </div>
+      </div>
+    );
+  }
+
+  if (youtubeVideoId) {
+    const autoplay = revealed ? 1 : audioOnly ? 0 : 1;
+    const mute = audioOnly ? 0 : 1;
+    const embedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay}&mute=${mute}&controls=0&playsinline=1&rel=0&modestbranding=1&start=0&end=${Math.max(2, clipDurationSeconds)}`;
+
+    return (
+      <div className={cn('relative overflow-hidden group bg-black', className)}>
+        {audioOnly ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-950 via-gray-900 to-red-950 text-white z-10 pointer-events-none">
+            <div className="text-5xl">🎧</div>
+            <div className="text-sm font-semibold tracking-wide uppercase text-red-300">Audio Clue</div>
+            <div className="text-xs text-gray-400">Use the sound and then pick the right answer.</div>
+          </div>
+        ) : null}
+        <iframe
+          key={`${youtubeVideoId}-${revealed}-${audioOnly}-${clipDurationSeconds}`}
+          src={embedUrl}
+          className={cn('w-full h-full border-0', audioOnly && 'opacity-0')}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          onLoad={() => setReady(true)}
+        />
+        {!revealed && (
+          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+            {audioOnly ? `${clipDurationSeconds}s audio` : `${clipDurationSeconds}s clip`}
+          </div>
+        )}
+        {!ready && (
+          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full border-2 border-gray-700 border-t-red-500 animate-spin" />
+          </div>
+        )}
       </div>
     );
   }

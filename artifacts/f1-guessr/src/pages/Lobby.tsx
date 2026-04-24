@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Trophy, Zap, Eye, Film, Lock, Gauge, CalendarDays } from 'lucide-react';
+import { Trophy, Zap, Eye, Film, Lock, Gauge, CalendarDays, AudioLines } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { getLevelConfig } from '@/lib/gameEngine';
 import type { ChallengeMode } from '@/lib/types';
@@ -15,9 +15,10 @@ const featureCards = [
   { icon: Eye, label: 'Pixel Rush', desc: 'Blurred race moments and trackside clues', modes: ['pixelated'] as ChallengeMode[] },
   { icon: Zap, label: 'Zoom Break', desc: 'Micro details from helmets, cars, and garages', modes: ['zoomed'] as ChallengeMode[] },
   { icon: Film, label: 'Clip Hunt', desc: 'Short live Reddit videos that refresh often', modes: ['video', 'clip'] as ChallengeMode[] },
+  { icon: AudioLines, label: 'Radio Scan', desc: 'Audio-first team radio and short sound clues', modes: ['audio'] as ChallengeMode[] },
 ];
 
-const ALL_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip'];
+const ALL_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip', 'audio'];
 
 export function Lobby({ onStartGame, totalScore, dailyBestScore, highestUnlockedLevel }: LobbyProps) {
   const unlockedConfig = getLevelConfig(highestUnlockedLevel);

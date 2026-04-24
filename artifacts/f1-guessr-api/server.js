@@ -205,22 +205,25 @@ async function buildChallenge(post) {
     return null;
   }
 
+  const youtubeVideoId = getYouTubeVideoIdFromPost(post);
   const [imageUrl, videoUrl] = await Promise.all([
     resolveImageUrl(getImageFromPost(post)),
     resolveVideoUrl(getVideoFromPost(post)),
   ]);
 
-  if (!imageUrl && !videoUrl) {
+  if (!imageUrl && !videoUrl && !youtubeVideoId) {
     return null;
   }
 
-  const hasVideo = Boolean(videoUrl);
+  const hasVideo = Boolean(videoUrl || youtubeVideoId);
+  const type = resolveChallengeType({ hasVideo, youtubeVideoId, title: post.title });
 
   return {
     id: post.id,
-    type: hasVideo ? (Math.random() > 0.5 ? "video" : "clip") : (Math.random() > 0.5 ? "pixelated" : "zoomed"),
+    type,
     imageUrl: imageUrl || undefined,
     videoUrl: videoUrl || undefined,
+    youtubeVideoId: youtubeVideoId || undefined,
     title: post.title,
     answer: detected.answer,
     options: detected.options,
@@ -252,6 +255,19 @@ function getVideoFromPost(post) {
     ?? post.secure_media?.reddit_video?.fallback_url
     ?? post.preview?.reddit_video_preview?.fallback_url;
   return videoUrl ? decodeHtmlUrl(videoUrl) : null;
+}
+
+function getYouTubeVideoIdFromPost(post) {
+  const url = decodeHtmlUrl(post.url || "");
+  if (!url) return null;
+
+  const directMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+  if (directMatch?.[1]) return directMatch[1];
+
+  const embedMatch = url.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/i);
+  if (embedMatch?.[1]) return embedMatch[1];
+
+  return null;
 }
 
 function decodeHtmlUrl(value) {
@@ -317,6 +333,20 @@ function detectAnswer(post) {
   };
 }
 
+function resolveChallengeType({ hasVideo, youtubeVideoId, title }) {
+  if (!hasVideo) {
+    return Math.random() > 0.5 ? "pixelated" : "zoomed";
+  }
+
+  const normalizedTitle = (title || "").toLowerCase();
+  const audioKeywords = ["team radio", "radio", "onboard audio", "engine sound", "pit wall", "comms"];
+  if (youtubeVideoId && audioKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+    return "audio";
+  }
+
+  return Math.random() > 0.5 ? "video" : "clip";
+}
+
 function buildHint(title, detected) {
   const cleanTitle = title.replace(/\s+/g, " ").trim();
   const maskedTitle = maskAnswerInTitle(cleanTitle, detected.answer);
@@ -358,8 +388,23 @@ function escapeRegExp(value) {
 }
 
 function generateOptions(correct, pool) {
-  const others = pool.filter((item) => item.toLowerCase() !== correct.toLowerCase());
-  return shuffle([correct, ...shuffle(others).slice(0, 3)]);
+  const seen = new Set();
+  const normalizedCorrect = correct.toLowerCase();
+  const uniqueOthers = [];
+
+  for (const item of pool) {
+    const normalized = item.toLowerCase();
+    if (normalized === normalizedCorrect || seen.has(normalized)) continue;
+    seen.add(normalized);
+    uniqueOthers.push(item);
+  }
+
+  const sampled = shuffle(uniqueOthers).slice(0, 3);
+  if (sampled.length < 3) {
+    return [];
+  }
+
+  return shuffle([correct, ...sampled]);
 }
 
 function getImageSourceCandidates(url) {
@@ -442,7 +487,7 @@ async function fetchWithTimeout(url, options = {}) {
 }
 
 function resolveTypeForLevel(type, level) {
-  if (type === "video" || type === "clip") {
+  if (type === "video" || type === "clip" || type === "audio") {
     return type;
   }
 

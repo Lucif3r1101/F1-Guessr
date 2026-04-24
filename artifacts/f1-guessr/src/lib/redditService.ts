@@ -33,7 +33,12 @@ export async function fetchChallengesForLevel(level: number): Promise<F1Challeng
     throw new Error("The live challenge API returned no playable F1 media.");
   }
 
-  return payload.challenges;
+  const playableChallenges = payload.challenges.filter(isPlayableChallenge);
+  if (playableChallenges.length === 0) {
+    throw new Error("The live challenge API returned no 4-option playable F1 media.");
+  }
+
+  return playableChallenges;
 }
 
 async function safeReadError(response: Response): Promise<string | null> {
@@ -43,4 +48,10 @@ async function safeReadError(response: Response): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function isPlayableChallenge(challenge: F1Challenge): boolean {
+  const uniqueOptions = [...new Set((challenge.options || []).map((option) => option.trim()).filter(Boolean))];
+  const hasMedia = Boolean(challenge.imageUrl || challenge.videoUrl || challenge.youtubeVideoId);
+  return hasMedia && uniqueOptions.length === 4 && uniqueOptions.includes(challenge.answer);
 }

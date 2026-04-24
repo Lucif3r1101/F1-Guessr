@@ -26,30 +26,17 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   const [revealed, setRevealed] = useState(false);
   const [lastResult, setLastResult] = useState<{ correct: boolean; points: number; timedOut?: boolean } | null>(null);
   const [showHint, setShowHint] = useState(false);
-  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearAdvanceTimeout = useCallback(() => {
-    if (advanceTimeoutRef.current) {
-      clearTimeout(advanceTimeoutRef.current);
-      advanceTimeoutRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => clearAdvanceTimeout();
-  }, [clearAdvanceTimeout]);
+  const [pendingSubmission, setPendingSubmission] = useState<{ answer: string; timeRemainingMs: number } | null>(null);
+  const answeredRef = useRef(false);
 
   const handleExpire = useCallback(() => {
-    if (!answered) {
-      clearAdvanceTimeout();
-      setAnswered(true);
-      setRevealed(true);
-      setLastResult({ correct: false, points: 0, timedOut: true });
-      advanceTimeoutRef.current = setTimeout(() => {
-        onAnswer('', 0);
-      }, 1800);
-    }
-  }, [answered, clearAdvanceTimeout, onAnswer]);
+    if (answeredRef.current) return;
+    answeredRef.current = true;
+    setAnswered(true);
+    setRevealed(true);
+    setLastResult({ correct: false, points: 0, timedOut: true });
+    setPendingSubmission({ answer: '', timeRemainingMs: 0 });
+  }, []);
 
   const { timeRemainingMs, secondsRemaining, percentageRemaining, start, stop } = useCountdown(
     config.timePerQuestion,
@@ -57,19 +44,20 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   );
 
   useEffect(() => {
-    clearAdvanceTimeout();
+    answeredRef.current = false;
     setAnswered(false);
     setRevealed(false);
     setLastResult(null);
     setShowHint(false);
+    setPendingSubmission(null);
     start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentQuestionIndex, state.currentLevel, challenge?.id]);
 
   const handleAnswer = useCallback((answer: string) => {
-    if (answered) return;
+    if (answeredRef.current) return;
+    answeredRef.current = true;
     stop();
-    clearAdvanceTimeout();
     const correct = answer.toLowerCase().trim() === challenge?.answer.toLowerCase().trim();
     setAnswered(true);
     setRevealed(true);
@@ -77,10 +65,13 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
       correct,
       points: correct ? Math.floor((timeRemainingMs / (config.timePerQuestion * 1000)) * config.basePoints + config.basePoints) : 0,
     });
-    advanceTimeoutRef.current = setTimeout(() => {
-      onAnswer(answer, timeRemainingMs);
-    }, correct ? 900 : 1800);
-  }, [answered, challenge, clearAdvanceTimeout, timeRemainingMs, config, stop, onAnswer]);
+    setPendingSubmission({ answer, timeRemainingMs });
+  }, [challenge, timeRemainingMs, config, stop]);
+
+  const handleNextQuestion = useCallback(() => {
+    if (!pendingSubmission) return;
+    onAnswer(pendingSubmission.answer, pendingSubmission.timeRemainingMs);
+  }, [pendingSubmission, onAnswer]);
 
   const handleHint = () => {
     if (!showHint) {
@@ -136,9 +127,11 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
             className="flex flex-col gap-4"
           >
             <div className="aspect-video rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 relative">
-              {(challenge.type === 'video' || challenge.type === 'clip') && challenge.videoUrl ? (
+              {(challenge.type === 'video' || challenge.type === 'clip' || challenge.type === 'audio') && (challenge.videoUrl || challenge.youtubeVideoId) ? (
                 <VideoChallenge
                   src={challenge.videoUrl}
+                  youtubeVideoId={challenge.youtubeVideoId}
+                  audioOnly={challenge.type === 'audio'}
                   revealed={revealed}
                   clipDurationSeconds={Math.max(2, 6 - state.currentLevel * 0.5)}
                   className="w-full h-full"
@@ -223,6 +216,15 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
                 >
                   <Lightbulb className="w-3 h-3" />
                   Use Hint (-40% points)
+                </button>
+              )}
+              {answered && pendingSubmission && (
+                <button
+                  onClick={handleNextQuestion}
+                  className="ml-auto px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors"
+                  data-testid="button-next-question"
+                >
+                  {state.currentQuestionIndex >= state.challenges.length - 1 ? 'Finish Level' : 'Next Question'}
                 </button>
               )}
               {answered && (
