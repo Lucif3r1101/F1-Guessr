@@ -118,7 +118,7 @@ export function PixelatedImage({
   }
 
   // Zoomed: scale image up from a fixed origin point
-  const scale = 1 + (zoomPercent / 100) * 5;
+  const scale = 1 + (zoomPercent / 100) * 2.4;
   const ox = zoomOrigin.current.x;
   const oy = zoomOrigin.current.y;
 

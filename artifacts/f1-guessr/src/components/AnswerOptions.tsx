@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,10 @@ interface AnswerOptionsProps {
 
 export function AnswerOptions({ options, correctAnswer, onAnswer, revealed = false, disabled = false }: AnswerOptionsProps) {
   const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [options, correctAnswer]);
 
   const handleSelect = (option: string) => {
     if (disabled || selected || revealed) return;
