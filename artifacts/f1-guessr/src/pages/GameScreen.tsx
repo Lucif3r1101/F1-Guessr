@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Lightbulb, Home } from 'lucide-react';
+import { Lightbulb, Home } from 'lucide-react';
 import { TimerBar } from '@/components/TimerBar';
 import { PixelatedImage } from '@/components/PixelatedImage';
 import { VideoChallenge } from '@/components/VideoChallenge';
-import { AnswerOptions, FillInTheBlank } from '@/components/AnswerOptions';
+import { AnswerOptions } from '@/components/AnswerOptions';
 import { ScoreBoard, QuestionProgress } from '@/components/ScoreBoard';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getLevelConfig } from '@/lib/gameEngine';
@@ -26,7 +26,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
   const [revealed, setRevealed] = useState(false);
   const [lastResult, setLastResult] = useState<{ correct: boolean; points: number; timedOut?: boolean } | null>(null);
   const [showHint, setShowHint] = useState(false);
-  const [useFillInBlank, setUseFillInBlank] = useState(false);
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearAdvanceTimeout = useCallback(() => {
@@ -63,7 +62,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
     setRevealed(false);
     setLastResult(null);
     setShowHint(false);
-    setUseFillInBlank(challenge?.options.length === 0 || (config.level >= 5 && Math.random() > 0.6));
     start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentQuestionIndex, state.currentLevel, challenge?.id]);
@@ -208,23 +206,13 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
               )}
             </div>
 
-            {useFillInBlank ? (
-              <FillInTheBlank
-                answer={challenge.answer}
-                hint={challenge.hint}
-                onAnswer={handleAnswer}
-                revealed={revealed}
-                disabled={answered}
-              />
-            ) : (
-              <AnswerOptions
-                options={challenge.options}
-                correctAnswer={challenge.answer}
-                onAnswer={handleAnswer}
-                revealed={revealed}
-                disabled={answered}
-              />
-            )}
+            <AnswerOptions
+              options={challenge.options}
+              correctAnswer={challenge.answer}
+              onAnswer={handleAnswer}
+              revealed={revealed}
+              disabled={answered}
+            />
 
             <div className="flex gap-2 justify-between items-center">
               {!showHint && !answered && (

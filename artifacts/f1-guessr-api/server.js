@@ -9,9 +9,14 @@ const FETCH_TIMEOUT_MS = 8_000;
 const MAX_CACHE_SIZE = 80;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
-const CORE_SUBREDDITS = ["formula1", "formuladank"];
+const CORE_SUBREDDITS = ["formula1", "grandprixracing"];
 const EXTRA_SUBREDDITS = ["MotorSport", "motorsports", "racing"];
 const REDDIT_BASES = ["https://www.reddit.com", "https://old.reddit.com"];
+const MEME_KEYWORDS = [
+  "meme", "shitpost", "template", "starter pack", "meirl", "reaction image",
+  "caption this", "wrong answers only", "chatgpt", "twitter admin", "circlejerk",
+  "when you", "pov:", "pov ", "be like", "average ", "bro when", "leaked script"
+];
 
 const ALL_DRIVERS = [
   "Max Verstappen", "Lewis Hamilton", "Charles Leclerc", "Lando Norris",
@@ -131,6 +136,7 @@ async function refreshChallengeCache() {
       if (nextItems.length >= MAX_CACHE_SIZE) break;
       if (seenPostIds.has(post.id)) continue;
       seenPostIds.add(post.id);
+      if (!isRelevantPost(post)) continue;
 
       const challenge = await buildChallenge(post);
       if (!challenge) continue;
@@ -195,7 +201,7 @@ async function fetchRedditFeed(subreddit, sort = "hot", timeFilter = "year", lim
 
 async function buildChallenge(post) {
   const detected = detectAnswer(post);
-  if (detected.questionType === "general" && detected.answer.length < 5) {
+  if (detected.questionType === "general" || detected.answer.length < 5 || detected.options.length < 4) {
     return null;
   }
 
@@ -250,6 +256,19 @@ function getVideoFromPost(post) {
 
 function decodeHtmlUrl(value) {
   return value.replace(/&amp;/g, "&");
+}
+
+function isRelevantPost(post) {
+  const title = (post.title || "").toLowerCase();
+  const subreddit = (post.subreddit || "").toLowerCase();
+  const flair = (post.link_flair_text || "").toLowerCase();
+
+  if (post.over_18 || post.is_self) return false;
+  if (subreddit === "formuladank") return false;
+  if (flair.includes("meme") || flair.includes("humor")) return false;
+  if (MEME_KEYWORDS.some((keyword) => title.includes(keyword))) return false;
+
+  return true;
 }
 
 function detectAnswer(post) {
