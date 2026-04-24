@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { TimerBar } from '@/components/TimerBar';
 import { PixelatedImage } from '@/components/PixelatedImage';
 import { VideoChallenge } from '@/components/VideoChallenge';
@@ -20,12 +20,12 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProps) {
+  void onHint;
   const config = getLevelConfig(state.currentLevel);
   const challenge: F1Challenge | undefined = state.challenges[state.currentQuestionIndex];
   const [answered, setAnswered] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [lastResult, setLastResult] = useState<{ correct: boolean; points: number; timedOut?: boolean } | null>(null);
-  const [showHint, setShowHint] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<{ answer: string; timeRemainingMs: number } | null>(null);
   const answeredRef = useRef(false);
 
@@ -48,7 +48,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
     setAnswered(false);
     setRevealed(false);
     setLastResult(null);
-    setShowHint(false);
     setPendingSubmission(null);
     start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,13 +71,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
     if (!pendingSubmission) return;
     onAnswer(pendingSubmission.answer, pendingSubmission.timeRemainingMs);
   }, [pendingSubmission, onAnswer]);
-
-  const handleHint = () => {
-    if (!showHint) {
-      setShowHint(true);
-      onHint();
-    }
-  };
 
   if (!challenge) {
     return (
@@ -159,6 +151,7 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
                 {challenge.type === 'zoomed' && '🔍 Zoomed In'}
                 {challenge.type === 'video' && '🎬 Video Clip'}
                 {challenge.type === 'clip' && '🎬 Short Clip'}
+                {challenge.type === 'audio' && 'Audio Clue'}
               </div>
 
               {revealed && (
@@ -191,12 +184,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
               <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider">
                 Identify the {challenge.questionType}:
               </div>
-              {showHint && (
-                <div className="mt-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
-                  <div className="text-[11px] uppercase tracking-wider text-yellow-300/80 mb-1">Reddit clue</div>
-                  <div className="text-xs text-yellow-100 leading-relaxed">{challenge.hint}</div>
-                </div>
-              )}
             </div>
 
             <AnswerOptions
@@ -208,16 +195,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
             />
 
             <div className="flex gap-2 justify-between items-center">
-              {!showHint && !answered && (
-                <button
-                  onClick={handleHint}
-                  className="flex items-center gap-1.5 text-xs text-yellow-400 hover:text-yellow-300 border border-yellow-700/40 hover:border-yellow-500/60 px-3 py-2 rounded-lg transition-all"
-                  data-testid="button-use-hint"
-                >
-                  <Lightbulb className="w-3 h-3" />
-                  Use Hint (-40% points)
-                </button>
-              )}
               {answered && pendingSubmission && (
                 <button
                   onClick={handleNextQuestion}

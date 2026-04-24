@@ -23,11 +23,13 @@ export function VideoChallenge({
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
+  const [audioStarted, setAudioStarted] = useState(false);
 
   useEffect(() => {
     setError(false);
     setPlaying(false);
     setReady(false);
+    setAudioStarted(false);
   }, [src, youtubeVideoId, audioOnly]);
 
   useEffect(() => {
@@ -56,10 +58,11 @@ export function VideoChallenge({
     const video = videoRef.current;
     if (!video || !ready) return;
 
-    video.muted = true;
+    video.muted = !audioOnly;
     video.loop = revealed;
 
     if (!revealed) {
+      if (audioOnly && !audioStarted) return;
       video.currentTime = 0;
       void video.play().then(() => {
         setPlaying(true);
@@ -70,11 +73,14 @@ export function VideoChallenge({
       void video.play().then(() => setPlaying(true)).catch(() => {});
       return undefined;
     }
-  }, [src, revealed, clipDurationSeconds, ready]);
+  }, [src, revealed, clipDurationSeconds, ready, audioOnly, audioStarted]);
 
   const handleReplay = () => {
     const video = videoRef.current;
     if (!video || revealed || !ready) return;
+    if (audioOnly) {
+      setAudioStarted(true);
+    }
     video.currentTime = 0;
     void video.play().then(() => {
       setPlaying(true);
@@ -94,9 +100,9 @@ export function VideoChallenge({
   }
 
   if (youtubeVideoId) {
-    const autoplay = revealed ? 1 : audioOnly ? 0 : 1;
+    const autoplay = revealed ? 1 : audioOnly ? (audioStarted ? 1 : 0) : 1;
     const mute = audioOnly ? 0 : 1;
-    const embedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=${autoplay}&mute=${mute}&controls=0&playsinline=1&rel=0&modestbranding=1&start=0&end=${Math.max(2, clipDurationSeconds)}`;
+    const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeVideoId}?autoplay=${autoplay}&mute=${mute}&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&end=${Math.max(2, clipDurationSeconds)}`;
 
     return (
       <div className={cn('relative overflow-hidden group bg-black', className)}>
@@ -107,6 +113,15 @@ export function VideoChallenge({
             <div className="text-xs text-gray-400">Use the sound and then pick the right answer.</div>
           </div>
         ) : null}
+        {!revealed && audioOnly && !audioStarted && (
+          <button
+            type="button"
+            onClick={() => setAudioStarted(true)}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 text-white text-sm font-semibold"
+          >
+            Play Audio
+          </button>
+        )}
         <iframe
           key={`${youtubeVideoId}-${revealed}-${audioOnly}-${clipDurationSeconds}`}
           src={embedUrl}
@@ -115,6 +130,9 @@ export function VideoChallenge({
           allowFullScreen
           onLoad={() => setReady(true)}
         />
+        {!audioOnly && (
+          <div className="absolute top-0 left-0 right-0 h-9 bg-black/90 pointer-events-none" />
+        )}
         {!revealed && (
           <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
             {audioOnly ? `${clipDurationSeconds}s audio` : `${clipDurationSeconds}s clip`}

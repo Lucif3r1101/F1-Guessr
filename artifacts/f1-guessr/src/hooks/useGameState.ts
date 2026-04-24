@@ -114,7 +114,12 @@ export function useGameState() {
 
     try {
       const challenges = await fetchChallengesForLevel(level);
-      const filteredChallenges = filterChallengesByModes(challenges, allowedModes);
+      let filteredChallenges = filterChallengesByModes(challenges, allowedModes);
+
+      if (filteredChallenges.length < MIN_CHALLENGES_PER_RUN && !isSameModeSet(allowedModes, DEFAULT_CHALLENGE_MODES)) {
+        filteredChallenges = filterChallengesByModes(challenges, DEFAULT_CHALLENGE_MODES);
+        setSelectedModes(DEFAULT_CHALLENGE_MODES);
+      }
 
       if (filteredChallenges.length === 0) {
         throw new Error('No live F1 content matched the selected challenge modes. Try a different mix.');
@@ -236,4 +241,10 @@ export function useGameState() {
 function filterChallengesByModes(challenges: F1Challenge[], allowedModes: ChallengeMode[]) {
   const modeSet = new Set<ChallengeMode>(allowedModes.length > 0 ? allowedModes : DEFAULT_CHALLENGE_MODES);
   return challenges.filter((challenge) => modeSet.has(challenge.type));
+}
+
+function isSameModeSet(left: ChallengeMode[], right: ChallengeMode[]) {
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every((mode) => rightSet.has(mode));
 }
