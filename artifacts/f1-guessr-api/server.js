@@ -17,6 +17,10 @@ const MEME_KEYWORDS = [
   "caption this", "wrong answers only", "chatgpt", "twitter admin", "circlejerk",
   "when you", "pov:", "pov ", "be like", "average ", "bro when", "leaked script"
 ];
+const AUDIO_TITLE_KEYWORDS = [
+  "team radio", "radio", "onboard audio", "engine sound", "pit wall", "comms",
+  "audio", "sound", "helmet cam", "onboard", "race engineer", "driver radio"
+];
 
 const ALL_DRIVERS = [
   "Max Verstappen", "Lewis Hamilton", "Charles Leclerc", "Lando Norris",
@@ -339,8 +343,7 @@ function resolveChallengeType({ hasVideo, youtubeVideoId, title }) {
   }
 
   const normalizedTitle = (title || "").toLowerCase();
-  const audioKeywords = ["team radio", "radio", "onboard audio", "engine sound", "pit wall", "comms"];
-  if (youtubeVideoId && audioKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+  if (AUDIO_TITLE_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword))) {
     return "audio";
   }
 

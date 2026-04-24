@@ -171,38 +171,22 @@ export function useGameState() {
   }, []);
 
   const advanceToNextLevel = useCallback(async () => {
-    setState(prev => {
-      const config = getLevelConfig(prev.currentLevel);
-      const maxPossible = getMaxPossibleScore(config, prev.challenges.length);
-      if (!hasPassedLevel(prev.score, maxPossible)) {
-        return prev;
-      }
+    const current = state;
+    const config = getLevelConfig(current.currentLevel);
+    const maxPossible = getMaxPossibleScore(config, current.challenges.length);
 
-      const nextLevel = prev.currentLevel + 1;
-      if (nextLevel > 10) {
-        return { ...prev, gamePhase: 'victory' };
-      }
-      // We call loadLevel in the async wrapper outside
-      return prev;
-    });
+    if (!hasPassedLevel(current.score, maxPossible)) {
+      return;
+    }
 
-    // Read current level from state via ref-like approach
-    setState(prev => {
-      const config = getLevelConfig(prev.currentLevel);
-      const maxPossible = getMaxPossibleScore(config, prev.challenges.length);
-      if (!hasPassedLevel(prev.score, maxPossible)) {
-        return prev;
-      }
+    const nextLevel = current.currentLevel + 1;
+    if (nextLevel > 10) {
+      setState(prev => ({ ...prev, gamePhase: 'victory' }));
+      return;
+    }
 
-      const nextLevel = prev.currentLevel + 1;
-      if (nextLevel > 10) return { ...prev, gamePhase: 'victory' };
-
-      const savedTotal = prev.totalScore;
-      // Kick off async load
-      loadLevel(nextLevel, savedTotal, selectedModes);
-      return { ...prev, gamePhase: 'loading' };
-    });
-  }, [loadLevel, selectedModes]);
+    await loadLevel(nextLevel, current.totalScore, selectedModes);
+  }, [state, loadLevel, selectedModes]);
 
   const resetGame = useCallback(() => {
     setState(createInitialGameState(1));

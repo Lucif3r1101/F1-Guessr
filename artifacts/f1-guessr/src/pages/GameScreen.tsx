@@ -204,19 +204,6 @@ export function GameScreen({ state, onAnswer, onHint, onGoHome }: GameScreenProp
                   {state.currentQuestionIndex >= state.challenges.length - 1 ? 'Finish Level' : 'Next Question'}
                 </button>
               )}
-              {answered && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <a
-                    href={challenge.redditPermalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-gray-200 transition-colors"
-                    data-testid="link-reddit-source"
-                  >
-                    View on Reddit
-                  </a>
-                </div>
-              )}
             </div>
           </motion.div>
         </AnimatePresence>

@@ -4,6 +4,7 @@ export type { F1Challenge };
 
 const DEFAULT_API_BASE_URL = "http://localhost:8787";
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, "");
+const API_REQUEST_TIMEOUT_MS = 15000;
 
 interface ChallengesApiResponse {
   challenges: F1Challenge[];
@@ -16,12 +17,25 @@ interface ChallengesApiResponse {
 export async function fetchChallengesForLevel(level: number): Promise<F1Challenge[]> {
   const url = new URL(`${API_BASE_URL}/api/challenges`);
   url.searchParams.set("level", String(level));
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      headers: {
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Challenge load timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const message = await safeReadError(response);
