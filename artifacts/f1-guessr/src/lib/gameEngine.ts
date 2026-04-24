@@ -167,6 +167,10 @@ export function getLevelConfig(level: number): LevelConfig {
   return LEVEL_CONFIGS[Math.min(level - 1, LEVEL_CONFIGS.length - 1)];
 }
 
+export function getMaxPossibleScore(config: LevelConfig, questionsCount: number = config.questionsCount): number {
+  return config.basePoints * Math.max(1, questionsCount) * 2;
+}
+
 export function calculatePoints(
   config: LevelConfig,
   timeRemainingMs: number,

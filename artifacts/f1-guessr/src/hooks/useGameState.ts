@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { createInitialGameState, processAnswer, getLevelConfig, hasPassedLevel } from '@/lib/gameEngine';
+import { createInitialGameState, processAnswer, getLevelConfig, hasPassedLevel, getMaxPossibleScore } from '@/lib/gameEngine';
 import type { GameState } from '@/lib/gameEngine';
 import { fetchChallengesForLevel } from '@/lib/redditService';
 import type { ChallengeMode, F1Challenge } from '@/lib/types';
@@ -13,6 +13,7 @@ interface DailyProgress {
 }
 
 const DEFAULT_CHALLENGE_MODES: ChallengeMode[] = ['pixelated', 'zoomed', 'video', 'clip'];
+const MIN_CHALLENGES_PER_RUN = 3;
 
 function getTodayKey() {
   const now = new Date();
@@ -83,7 +84,7 @@ export function useGameState() {
   useEffect(() => {
     if (state.gamePhase === 'levelComplete' || state.gamePhase === 'victory') {
       const config = getLevelConfig(state.currentLevel);
-      const maxPossible = config.basePoints * config.questionsCount * 2;
+      const maxPossible = getMaxPossibleScore(config, state.challenges.length);
       const passedLevel = state.gamePhase === 'victory' || hasPassedLevel(state.score, maxPossible);
       if (!passedLevel) return;
 
@@ -119,11 +120,11 @@ export function useGameState() {
         throw new Error('No live F1 content matched the selected challenge modes. Try a different mix.');
       }
 
-      if (filteredChallenges.length < config.questionsCount) {
-        throw new Error(`Only ${filteredChallenges.length} playable challenge(s) matched the selected modes. Add more modes to continue.`);
+      if (filteredChallenges.length < MIN_CHALLENGES_PER_RUN) {
+        throw new Error(`Only ${filteredChallenges.length} playable challenge(s) matched the selected modes right now. Try again in a moment or add more modes.`);
       }
 
-      const selected = filteredChallenges.slice(0, config.questionsCount);
+      const selected = filteredChallenges.slice(0, Math.min(config.questionsCount, filteredChallenges.length));
 
       setState(prev => ({
         ...prev,
@@ -167,7 +168,7 @@ export function useGameState() {
   const advanceToNextLevel = useCallback(async () => {
     setState(prev => {
       const config = getLevelConfig(prev.currentLevel);
-      const maxPossible = config.basePoints * config.questionsCount * 2;
+      const maxPossible = getMaxPossibleScore(config, prev.challenges.length);
       if (!hasPassedLevel(prev.score, maxPossible)) {
         return prev;
       }
@@ -183,7 +184,7 @@ export function useGameState() {
     // Read current level from state via ref-like approach
     setState(prev => {
       const config = getLevelConfig(prev.currentLevel);
-      const maxPossible = config.basePoints * config.questionsCount * 2;
+      const maxPossible = getMaxPossibleScore(config, prev.challenges.length);
       if (!hasPassedLevel(prev.score, maxPossible)) {
         return prev;
       }

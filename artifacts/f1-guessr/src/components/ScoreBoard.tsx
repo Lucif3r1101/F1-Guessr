@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { GameState } from '@/lib/gameEngine';
-import { getScoreGrade, getLevelConfig } from '@/lib/gameEngine';
+import { getScoreGrade, getLevelConfig, getMaxPossibleScore } from '@/lib/gameEngine';
 
 interface ScoreBoardProps {
   state: GameState;
@@ -10,7 +10,7 @@ interface ScoreBoardProps {
 
 export function ScoreBoard({ state, className }: ScoreBoardProps) {
   const config = getLevelConfig(state.currentLevel);
-  const maxPossible = config.basePoints * config.questionsCount * 2;
+  const maxPossible = getMaxPossibleScore(config, state.challenges.length);
   const { grade, color, message } = getScoreGrade(state.score, maxPossible);
 
   return (
@@ -85,7 +85,7 @@ interface ResultsCardProps {
 
 export function ResultsCard({ state, onNextLevel, onRestart, className }: ResultsCardProps) {
   const config = getLevelConfig(state.currentLevel);
-  const maxPossible = config.basePoints * config.questionsCount * 2;
+  const maxPossible = getMaxPossibleScore(config, state.challenges.length);
   const { grade, color, message } = getScoreGrade(state.score, maxPossible);
   const correctCount = state.answers.filter(a => a.correct).length;
   const accuracy = state.answers.length > 0 ? Math.round((correctCount / state.answers.length) * 100) : 0;

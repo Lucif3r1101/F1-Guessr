@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Trophy, ChevronRight, RotateCcw } from 'lucide-react';
-import { getLevelConfig, getScoreGrade, getLevelUnlockMessage, getPassingScore, hasPassedLevel } from '@/lib/gameEngine';
+import { getLevelConfig, getScoreGrade, getLevelUnlockMessage, getPassingScore, hasPassedLevel, getMaxPossibleScore } from '@/lib/gameEngine';
 import type { GameState } from '@/lib/gameEngine';
 
 interface LevelCompleteProps {
@@ -12,7 +12,7 @@ interface LevelCompleteProps {
 
 export function LevelComplete({ state, onNextLevel, onRestart, onGoHome }: LevelCompleteProps) {
   const config = getLevelConfig(state.currentLevel);
-  const maxPossible = config.basePoints * config.questionsCount * 2;
+  const maxPossible = getMaxPossibleScore(config, state.challenges.length);
   const passingScore = getPassingScore(maxPossible);
   const passedLevel = hasPassedLevel(state.score, maxPossible);
   const { grade, color, message } = getScoreGrade(state.score, maxPossible);
